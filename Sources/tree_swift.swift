@@ -99,6 +99,12 @@ extension String {
             }
         }
 
+        if isLast {
+            indentation.append(lastChild)
+        } else {
+            indentation.append(child)
+        }
+
         return indentation
     }
 }
