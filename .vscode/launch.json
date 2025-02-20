@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:tree-swift}",
+            "name": "Debug tree-swift",
+            "program": "${workspaceFolder:tree-swift}/.build/debug/tree-swift",
+            "preLaunchTask": "swift: Build Debug tree-swift"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:tree-swift}",
+            "name": "Release tree-swift",
+            "program": "${workspaceFolder:tree-swift}/.build/release/tree-swift",
+            "preLaunchTask": "swift: Build Release tree-swift"
+        }
+    ]
+}
