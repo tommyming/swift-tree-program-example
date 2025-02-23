@@ -12,9 +12,29 @@ struct Tree: ParsableCommand {
     @Argument
     var path: Path = .current
 
+    @OptionGroup
+    var options: Options
+
     func run() throws {
+        var files = 0
+        var directories = 0
+
         print(path.absolute().string)
-        try path.listChildren()
+        try path.listChildren(
+            filesCount: &files,
+            directoriesCount: &directories,
+            options: options
+        )
+
+        if !options.disableReport {
+            print("\n")
+
+            if files == 0 {
+                print("\(directories) directories")
+            } else {
+                print("\(directories) directories, \(files) files")
+            }
+        }
     }
 
     func validate() throws {
@@ -53,26 +73,47 @@ extension Tree.Error: CustomStringConvertible {
 }
 
 extension Path {
-    func listChildren(ancestors: [IsLastChild] = []) throws {
-        let children = try children().sorted()
+    func listChildren(
+        ancestors: [IsLastChild] = [],
+        filesCount: inout Int,
+        directoriesCount: inout Int,
+        options: Tree.Options
+    ) throws {
+        directoriesCount += 1
+        if let maxLevel = options.maxLevel, ancestors.count >= maxLevel {
+            return 
+        }
+
+        var children = try children().sorted()
+        if options.directoriesOnly {
+            children = children.filter { $0.isDirectory }
+        }
+
         let lastIndex = children.count - 1
 
         let enumeratedChildren = children.enumerated()
         try enumeratedChildren.forEach { index, child in
             let isLast = (index == lastIndex)
 
-            if child.lastComponent.hasPrefix(".") { return }
+            if !options.includeHidden, child.lastComponent.hasPrefix(".") { return }
 
             let indentation = String.indentation(isLast: isLast, ancestors: ancestors)
 
             if child.isFile {
                 print(indentation, child.lastComponent)
             } else {
-                print(indentation, child.lastComponent)
+                print(indentation, child.lastComponent.bold)
                 var updatedAncestors = ancestors
                 updatedAncestors.append(isLast)
-                try child.listChildren(ancestors: updatedAncestors)
+                try child.listChildren(
+                    ancestors: updatedAncestors,
+                    filesCount: &filesCount,
+                    directoriesCount: &directoriesCount,
+                    options: options
+                )
             }
+
+            filesCount += 1
         } 
     }
 }
@@ -109,3 +150,24 @@ extension String {
     }
 }
 
+extension String {
+    var bold: String {
+        "\u{001B}[1m" + self + "\u{001B}[0m"
+    }
+}
+
+extension Tree {
+    struct Options: ParsableArguments {
+        @Option(name: .customShort("L"))
+        var maxLevel: Int?
+
+        @Flag(name: .customShort("a"))
+        var includeHidden = false
+
+        @Flag(name: .customShort("d"))
+        var directoriesOnly = false
+
+        @Flag(name: .customLong("noreport"))
+        var disableReport = false
+    }   
+}
